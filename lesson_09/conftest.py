@@ -1,21 +1,24 @@
-# conftest.py
+# 09_lesson/conftest.py
 import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, close_all_sessions
-from models import Base, Student
-from database import DATABASE_URL, SessionLocal
+from database import Base, SessionLocal, DATABASE_URL  # ✅ Теперь эти импорты работают
+from models import Student, Subject  # ✅ И эти тоже
 
 
 @pytest.fixture(scope="function")
 def db_session():
-    """Создаёт изолированную сессию БД для каждого теста"""
-    # Создаём тестовый engine с изоляцией транзакций
+    """
+    Фикстура создаёт изолированную сессию БД для каждого теста.
+    Все изменения откатываются после завершения теста.
+    """
+    # Создаём тестовый engine
     engine = create_engine(DATABASE_URL, echo=False)
 
-    # Создаём все таблицы
+    # Создаём все таблицы из моделей
     Base.metadata.create_all(bind=engine)
 
-    # Начинаем транзакцию
+    # Подключаемся и начинаем транзакцию
     connection = engine.connect()
     transaction = connection.begin()
 
@@ -23,27 +26,41 @@ def db_session():
     Session = sessionmaker(bind=connection)
     session = Session()
 
-    yield session
+    yield session  # Передаём сессию в тест
 
-    # Откатываем все изменения после теста
+    # === ОЧИСТКА ПОСЛЕ ТЕСТА ===
     session.close()
-    transaction.rollback()
+    transaction.rollback()  # Отменяем все изменения
     connection.close()
 
-    # Очищаем все сессии
+    # Закрываем все сессии и удаляем таблицы
     close_all_sessions()
     Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
 def create_test_student(db_session):
-    """Хелпер для создания тестового студента"""
+    """Хелпер для быстрого создания тестового студента"""
 
-    def _create(name: str, email: str):
-        student = Student(name=name, email=email)
+    def _create(name: str, email: str, group: str = "TestGroup"):
+        student = Student(name=name, email=email, group=group)
         db_session.add(student)
         db_session.commit()
         db_session.refresh(student)
         return student
+
+    return _create
+
+
+@pytest.fixture
+def create_test_subject(db_session):
+    """Хелпер для быстрого создания тестового предмета"""
+
+    def _create(title: str, hours: int = 36):
+        subject = Subject(title=title, hours=hours)
+        db_session.add(subject)
+        db_session.commit()
+        db_session.refresh(subject)
+        return subject
 
     return _create
