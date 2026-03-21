@@ -1,0 +1,14 @@
+# Удаляем файл, если он создан с ошибкой (например, .txt.txt)
+Remove-Item -Path "09_lesson/requirements.txt*" -force -ErrorAction SilentlyContinue
+
+# Создаём заново с правильным именем
+New-Item -Path "09_lesson/requirements.txt" -itemType File -Force
+
+# Записываем содержимое
+@'
+pytest==7.4.3
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+python-dotenv==1.0.0
+'@ | Out-File -FilePath "09_lesson/requirements.txt" -encoding utf8 -Force
+
