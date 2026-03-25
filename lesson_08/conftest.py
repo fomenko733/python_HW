@@ -1,34 +1,24 @@
 import pytest
-import time
+import requests
 from config import Config
-from pages.projects_page import ProjectsPage
 
 
 @pytest.fixture(scope="session")
-def config():
-    """Фикстура конфигурации"""
-    Config.validate()
-    return Config
+def api_session():
+    """Сессия requests с предустановленными заголовками"""
+    session = requests.Session()
+    config = Config()
+    session.headers.update(config.auth_headers)
+    yield session
+    session.close()
 
 
-@pytest.fixture(scope="function")
-def projects_api():
-    """Фикстура PageObject для проектов"""
-    return ProjectsPage()
-
-
-@pytest.fixture(scope="function")
-def created_project(projects_api):
-    """Фикстура: создаёт проект перед тестом и удаляет после"""
-    project_data = {
-        "title": f"TestProject_{int(time.time())}",
-        "users": {Config.TEST_USER_ID: "admin"}
-    }
-    response = projects_api.create_project(**project_data)
-    assert response.status_code == 201, f"Не удалось создать проект: {response.text}"
-    project_id = response.json()["id"]
-
-    yield project_id  # Передаём ID в тест
-
-    # Teardown: удаляем проект после теста
-    projects_api.delete_project(project_id)
+@pytest.fixture(autouse=True)
+def skip_if_no_auth():
+    """Пропускать тесты, если не настроены креды"""
+    config = Config()
+    if not all([config.AUTH_LOGIN, config.AUTH_PASSWORD, config.COMPANY_ID, config.API_KEY]):
+        pytest.skip(
+            "Требуется настройка окружения: "
+            "YOUGILE_LOGIN, YOUGILE_PASSWORD, YOUGILE_COMPANY_ID, YOUGILE_API_KEY"
+        )

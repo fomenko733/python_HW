@@ -5,22 +5,30 @@ load_dotenv()
 
 
 class Config:
-    BASE_URL = os.getenv("YOUGILE_BASE_URL", "https://yougile.com")
-    API_TOKEN = os.getenv("YOUGILE_API_TOKEN")
-    COMPANY_ID = os.getenv("YOUGILE_COMPANY_ID")
-    TEST_USER_ID = os.getenv("YOUGILE_TEST_USER_ID")  # ID пользователя для назначения роли
+    """Конфигурация для тестов Yougile API"""
 
-    @classmethod
-    def get_headers(cls):
+    BASE_URL = os.getenv("YOUGILE_BASE_URL", "https://yougile.com")
+    API_PREFIX = "/api-v2"
+
+    # Auth данные для получения токена
+    AUTH_LOGIN = os.getenv("YOUGILE_LOGIN")
+    AUTH_PASSWORD = os.getenv("YOUGILE_PASSWORD")
+    COMPANY_ID = os.getenv("YOUGILE_COMPANY_ID")
+
+    # API ключ (можно получить заранее или через фикстуру)
+    API_KEY = os.getenv("YOUGILE_API_KEY")
+
+    # Таймауты
+    REQUEST_TIMEOUT = 30
+
+    @property
+    def api_url(self):
+        return f"{self.BASE_URL}{self.API_PREFIX}"
+
+    @property
+    def auth_headers(self):
         return {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {cls.API_TOKEN}"
+            "Accept": "application/json",
+            "Authorization": f"Bearer {self.API_KEY}"
         }
-
-    @classmethod
-    def validate(cls):
-        """Проверка наличия обязательных переменных"""
-        required = ["API_TOKEN", "COMPANY_ID", "TEST_USER_ID"]
-        missing = [var for var in required if not getattr(cls, var)]
-        if missing:
-            raise ValueError(f"Не заданы переменные окружения: {missing}")
