@@ -17,8 +17,15 @@ def api_session():
 def skip_if_no_auth():
     """Пропускать тесты, если не настроены креды"""
     config = Config()
-    if not all([config.AUTH_LOGIN, config.AUTH_PASSWORD, config.COMPANY_ID, config.API_KEY]):
+    required_vars = [
+        config.AUTH_LOGIN,
+        config.AUTH_PASSWORD,
+        config.COMPANY_ID,
+        config.API_KEY
+    ]
+    if not all(required_vars):
         pytest.skip(
             "Требуется настройка окружения: "
-            "YOUGILE_LOGIN, YOUGILE_PASSWORD, YOUGILE_COMPANY_ID, YOUGILE_API_KEY"
+            "YOUGILE_LOGIN, YOUGILE_PASSWORD, "
+            "YOUGILE_COMPANY_ID, YOUGILE_API_KEY"
         )
