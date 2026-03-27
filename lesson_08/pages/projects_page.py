@@ -1,6 +1,7 @@
-from typing import Dict, Optional
+from typing import Optional
 from requests import Response
 from pages.base_page import BasePage
+import uuid
 
 
 class ProjectsPage(BasePage):
@@ -11,10 +12,10 @@ class ProjectsPage(BasePage):
     # === POST /api-v2/projects ===
 
     def create_project(
-            self,
-            title: str,
-            users: Optional[Dict[str, str]] = None,
-            description: Optional[str] = None
+        self,
+        title: str,
+        users: Optional[dict] = None,
+        description: Optional[str] = None
     ) -> Response:
         """
         Создать новый проект
@@ -45,11 +46,10 @@ class ProjectsPage(BasePage):
     # === PUT /api-v2/projects/{id} ===
 
     def update_project(
-            self,
-            project_id: str,
-            title: Optional[str] = None,
-            description: Optional[str] = None,
-            **kwargs
+        self,
+        project_id: str, title: Optional[str] = None,
+        description: Optional[str] = None,
+        **kwargs
     ) -> Response:
         """
         Обновить проект
@@ -70,13 +70,12 @@ class ProjectsPage(BasePage):
 
     # === Вспомогательные методы для тестов ===
 
-    def create_test_project(self, prefix: str = "test_") -> tuple[str, Response]:
+    def create_test_project(self, prefix: str = "test_") -> tuple:
         """
         Создать тестовый проект и вернуть его ID и ответ
 
         :return: tuple(project_id, response)
         """
-        import uuid
         unique_title = f"{prefix}{uuid.uuid4().hex[:8]}"
         response = self.create_project_minimal(unique_title)
 
@@ -87,9 +86,27 @@ class ProjectsPage(BasePage):
 
     def cleanup_project(self, project_id: str) -> Response:
         """
-        Удалить проект (если эндпоинт доступен) или пометить как неактивный.
-        Примечание: DELETE /projects/{id} может быть не реализован в API v2,
-        поэтому этот метод может требовать адаптации под реальное API.
+        Удалить проект или пометить как неактивный.
+        Примечание: DELETE /projects/{id} может быть не реализован в API v2.
         """
-        # Если DELETE не поддерживается, можно обновить проект с флагом archived
-        return self.update_project(project_id, archived=True)
+        return self.update_project(project_id, title=f"archived_{uuid.uuid4().hex[:8]}")
+
+    # === Методы для получения данных из ответа API ===
+
+    def get_project_title(self, response: Response) -> Optional[str]:
+        """Получить title из ответа API (разные структуры)"""
+        data = response.json()
+        return (data.get("title")
+          or data.get("data", {}).get("title")
+          or data.get("result", {}).get("title")
+        )
+
+    def get_project_id(self, response: Response) -> Optional[str]:
+        """Получить id из ответа API (разные структуры)"""
+        data = response.json()
+        return (
+            data.get("id")
+            or data.get("projectId")
+            or data.get("data", {}).get("id")
+            or data.get("result", {}).get("id")
+        )
